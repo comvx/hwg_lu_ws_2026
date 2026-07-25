@@ -1,2 +1,9 @@
 # Generated at build time — do not commit
 data.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
