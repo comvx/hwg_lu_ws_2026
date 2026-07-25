@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archiv</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:#0b0b0a;color:#f4f3ef;font-family:"Inter",system-ui,sans-serif;font-size:14px;line-height:1.5}
+::selection{background:#f4f3ef;color:#0b0b0a}
+
+#app{height:100vh;display:flex;flex-direction:column}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 40px;flex:none;border-bottom:1px solid rgba(244,243,239,.14)}
+#topbar-title{font-weight:700;font-size:20px;letter-spacing:-.02em}
+#search{background:transparent;border:none;border-bottom:1px solid rgba(244,243,239,.3);color:#f4f3ef;font-family:inherit;font-size:13px;padding:4px 0;outline:none;width:220px}
+#search::placeholder{color:rgba(244,243,239,.4)}
+#search:focus{border-bottom-color:#f4f3ef}
+#body{flex:1;display:flex;min-height:0}
+
+/* Sidebar */
+#sidebar{width:220px;flex:none;padding:32px 28px;overflow-y:auto;border-right:1px solid rgba(244,243,239,.14)}
+.nav-all{cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;transition:opacity .15s}
+.course-name{cursor:pointer;font-size:14px;margin-bottom:12px;transition:opacity .15s}
+
+/* Main */
+#main{flex:1;padding:32px 44px;overflow-y:auto;min-width:0}
+#breadcrumb-row{display:flex;align-items:baseline;gap:14px;margin-bottom:30px}
+#breadcrumb{font-weight:600;font-size:18px;letter-spacing:-.01em}
+#count{font-size:12px;opacity:.4}
+#reset-btn{font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,243,239,.35);display:none}
+#reset-btn:hover{text-decoration-color:#f4f3ef}
+.row{display:grid;grid-template-columns:36px 1fr 160px 80px auto;align-items:center;gap:20px;padding:16px 0;cursor:pointer;border-top:1px solid rgba(244,243,239,.12);transition:opacity .15s}
+.row:hover{opacity:.65}
+.row:last-child{border-bottom:1px solid rgba(244,243,239,.12)}
+.row-idx{font-size:11px;opacity:.35}
+.row-meta{display:flex;align-items:baseline;gap:8px;min-width:0}
+.row-title{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-family:monospace;font-size:11px;opacity:.4}
+.row-course{font-size:12px;opacity:.45}
+.row-type{font-size:12px;opacity:.45}
+.row-share{font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,243,239,.35);justify-self:end}
+.row-share:hover{text-decoration-color:#f4f3ef}
+#empty{display:none;padding:80px 0;opacity:.4;flex-direction:column;gap:8px}
+#empty span{font-weight:500;font-size:16px}
+
+/* Preview overlay */
+#preview{position:fixed;inset:0;z-index:40;background:#0b0b0a;display:none;flex-direction:column}
+#preview.open{display:flex}
+#preview-bar{display:flex;align-items:center;justify-content:space-between;padding:22px 40px;flex:none;border-bottom:1px solid rgba(244,243,239,.14)}
+#preview-info{display:flex;align-items:baseline;gap:12px}
+#preview-course{font-size:12px;opacity:.45}
+#preview-title{font-weight:600;font-size:16px}
+#preview-actions{display:flex;gap:20px;align-items:center}
+.preview-link{font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,243,239,.35)}
+.preview-link:hover{text-decoration-color:#f4f3ef}
+#preview-content{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+
+/* PPTX */
+#pptx-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#pptx-canvas{max-width:calc(100% - 120px);max-height:100%;display:block;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.5)}
+.slide-nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:none;border:none;color:#f4f3ef;font-size:24px;font-weight:700;cursor:pointer;padding:12px 20px;opacity:.45;transition:opacity .15s;user-select:none}
+.slide-nav-btn:hover{opacity:1}
+#slide-nav-prev{left:20px}
+#slide-nav-next{right:20px}
+#pptx-loading{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:14px;opacity:.45;pointer-events:none}
+
+/* Notebook */
+#nb-container{flex:1;overflow-y:auto;padding:24px 8%;max-width:1000px;align-self:center;width:100%}
+
+/* Slide progress */
+#slide-progress{padding:10px 0 24px;display:flex;justify-content:center}
+#slide-bar-wrap{width:min(300px,50%);height:1px;background:rgba(244,243,239,.16)}
+#slide-bar{height:100%;background:#f4f3ef;transition:width .2s}
+
+/* Share modal */
+#share-modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center}
+#share-modal.open{display:flex}
+#share-box{width:min(420px,90vw);background:#0b0b0a;border:1px solid rgba(244,243,239,.2);padding:28px}
+#share-title{font-weight:600;font-size:18px;margin-bottom:8px}
+#share-desc{font-size:13px;opacity:.6;margin-bottom:16px;line-height:1.5}
+#share-link-input{background:transparent;border:none;border-bottom:1px solid rgba(244,243,239,.3);color:#f4f3ef;font-family:inherit;font-size:13px;padding:4px 0;outline:none;width:100%;margin-bottom:20px}
+#share-footer{display:flex;justify-content:flex-end;gap:20px}
+.share-action{font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,243,239,.35)}
+.share-action:hover{text-decoration-color:#f4f3ef}
+
+/* notebookjs styles */
+.nb-notebook{font-size:13.5px;color:#f4f3ef;line-height:1.55}
+.nb-cell{margin-bottom:16px;border-radius:6px;overflow:hidden}
+.nb-code-cell .nb-input{background:rgba(244,243,239,.05);padding:12px 16px}
+.nb-code-cell .nb-output-group{background:rgba(244,243,239,.025)}
+.nb-code-cell .nb-output{padding:12px 16px;border-top:1px solid rgba(244,243,239,.07)}
+.nb-input-prompt,.nb-output-prompt{font-family:"SF Mono",ui-monospace,monospace;font-size:10px;color:rgba(244,243,239,.3);margin-bottom:6px;user-select:none}
+.nb-cell pre{margin:0;background:transparent!important}
+.nb-cell code,.nb-cell pre{font-family:"SF Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.55}
+.nb-markdown-cell{padding:14px 18px}
+.nb-markdown-cell h1{font-size:21px;font-weight:600;margin:.7em 0 .3em;letter-spacing:-.01em}
+.nb-markdown-cell h2{font-size:17px;font-weight:600;margin:.7em 0 .3em}
+.nb-markdown-cell h3{font-size:14px;font-weight:600;margin:.6em 0 .25em}
+.nb-markdown-cell p{margin:.35em 0;line-height:1.65}
+.nb-markdown-cell code{font-family:"SF Mono",ui-monospace,monospace;font-size:12px;background:rgba(244,243,239,.1);padding:1px 5px;border-radius:3px}
+.nb-markdown-cell pre{background:rgba(244,243,239,.06)!important;border-radius:4px;padding:12px;overflow-x:auto;margin:.5em 0}
+.nb-markdown-cell ul,.nb-markdown-cell ol{padding-left:1.5em;margin:.4em 0}
+.nb-markdown-cell a{color:#a78bda;text-underline-offset:3px}
+.nb-output-text,.nb-stream{font-family:"SF Mono",ui-monospace,monospace;font-size:12px;white-space:pre-wrap;color:rgba(244,243,239,.75);margin:0}
+.nb-error,.nb-stderr{font-family:"SF Mono",ui-monospace,monospace;font-size:12px;white-space:pre-wrap;color:#ff7070}
+.nb-output img,.nb-cell img{max-width:100%;border-radius:4px;display:block;margin:.5em 0}
+.katex{font-size:1em}
+
+@media(max-width:700px){
+  #sidebar{display:none}
+  .row{grid-template-columns:30px 1fr 60px auto}
+  .row-course,.row-type{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span id="topbar-title">Archiv</span>
+    <input id="search" type="text" placeholder="Suchen…" autocomplete="off">
+  </div>
+  <div id="body">
+    <div id="sidebar">
+      <div id="nav-all" class="nav-all">Alle Kurse</div>
+      <div id="course-list"></div>
+    </div>
+    <div id="main">
+      <div id="breadcrumb-row">
+        <span id="breadcrumb">Alle Foliensätze</span>
+        <span id="count"></span>
+        <span id="reset-btn">Zurücksetzen</span>
+      </div>
+      <div id="list"></div>
+      <div id="empty"><span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview -->
+<div id="preview">
+  <div id="preview-bar">
+    <div id="preview-info">
+      <span id="preview-course"></span>
+      <span id="preview-title"></span>
+    </div>
+    <div id="preview-actions">
+      <span class="preview-link" id="btn-preview-share">Teilen</span>
+      <span class="preview-link" id="btn-preview-close">Schließen</span>
+    </div>
+  </div>
+  <div id="preview-content">
+    <div id="pptx-stage" style="display:none">
+      <button class="slide-nav-btn" id="slide-nav-prev">‹</button>
+      <canvas id="pptx-canvas"></canvas>
+      <button class="slide-nav-btn" id="slide-nav-next">›</button>
+      <div id="pptx-loading">Lade Präsentation…</div>
+    </div>
+    <div id="nb-container" style="display:none"></div>
+    <div id="slide-progress">
+      <div id="slide-bar-wrap"><div id="slide-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Share -->
+<div id="share-modal">
+  <div id="share-box" onclick="event.stopPropagation()">
+    <div id="share-title">Link teilen</div>
+    <div id="share-desc"></div>
+    <input id="share-link-input" readonly>
+    <div id="share-footer">
+      <span class="share-action" id="btn-share-close">Fertig</span>
+      <span class="share-action" id="btn-share-copy">Kopieren</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Parse a file path into a deck object ────────────────────────────────────
+// Expected format: "slides/KursName/Titel.pptx"  or  "notebooks/KursName/Titel.ipynb"
+function parsePath(path) {
+  const parts = path.split('/');
+  if (parts.length < 3) return null;
+  const [typeDir, course, ...rest] = parts;
+  const filename = rest.join('/');
+  const isNotebook = typeDir === 'notebooks' || filename.endsWith('.ipynb');
+  const title = filename.replace(/\.(pptx?|ipynb)$/i, '');
+  const slug = path; // use full path as stable key
+  return {
+    id: path,
+    path,
+    title,
+    course,
+    isNotebook,
+    unitLabel: isNotebook ? 'Zellen' : 'Folien',
+  };
+}
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let ALL_DECKS = [];
+let COURSES = [];   // sorted unique course names
+let state = { activeCourse: null, search: '' };
+
+// Viewer state
+let pptxMounted = false;
+let nbReady = false;
+let currentPreview = null;
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+function loadStylesheet(href) {
+  const l = document.createElement('link');
+  l.rel = 'stylesheet'; l.href = href;
+  document.head.appendChild(l);
+}
+
+// ─── Render sidebar ───────────────────────────────────────────────────────────
+function renderSidebar() {
+  $('nav-all').style.opacity = state.activeCourse ? 0.5 : 1;
+  $('course-list').innerHTML = COURSES.map(c =>
+    `<div class="course-name" data-course="${c}"
+      style="opacity:${state.activeCourse === c ? 1 : 0.5}">${c}</div>`
+  ).join('');
+}
+
+// ─── Render list ─────────────────────────────────────────────────────────────
+function filteredDecks() {
+  const q = state.search.trim().toLowerCase();
+  return ALL_DECKS.filter(d =>
+    (!state.activeCourse || d.course === state.activeCourse) &&
+    (!q || d.title.toLowerCase().includes(q) || d.course.toLowerCase().includes(q))
+  );
+}
+
+function renderList() {
+  const decks = filteredDecks();
+  const q = state.search.trim();
+
+  let bc = 'Alle Dateien';
+  if (q) bc = `Suche: „${q}"`;
+  else if (state.activeCourse) bc = state.activeCourse;
+  $('breadcrumb').textContent = bc;
+  $('count').textContent = `${decks.length} Einträge`;
+  $('reset-btn').style.display = (state.activeCourse || q) ? 'inline' : 'none';
+
+  if (!decks.length) {
+    $('list').innerHTML = '';
+    $('empty').style.display = 'flex';
+    $('empty').querySelector('span').textContent =
+      q ? `Keine Treffer für „${q}"` : 'Keine Dateien gefunden';
+    return;
+  }
+  $('empty').style.display = 'none';
+  $('list').innerHTML = decks.map((d, i) => `
+    <div class="row" data-id="${encodeURIComponent(d.id)}">
+      <span class="row-idx">${String(i + 1).padStart(2, '0')}</span>
+      <div class="row-meta">
+        <span class="row-title">${d.title}</span>
+        ${d.isNotebook ? '<span class="badge">.ipynb</span>' : ''}
+      </div>
+      <span class="row-course">${d.course}</span>
+      <span class="row-type">${d.isNotebook ? 'Notebook' : 'Folien'}</span>
+      <span class="row-share" data-share="${encodeURIComponent(d.id)}">Teilen</span>
+    </div>`).join('');
+}
+
+// ─── Preview ──────────────────────────────────────────────────────────────────
+function openPreview(deck) {
+  currentPreview = deck;
+  $('preview-course').textContent = deck.course;
+  $('preview-title').textContent = deck.title;
+  $('preview').classList.add('open');
+  $('slide-progress').style.visibility = 'visible';
+  $('slide-bar').style.width = '0%';
+
+  if (deck.isNotebook) {
+    $('pptx-stage').style.display = 'none';
+    $('nb-container').style.display = 'block';
+    $('slide-progress').style.visibility = 'hidden';
+    loadNotebook(deck);
+  } else {
+    $('nb-container').style.display = 'none';
+    $('pptx-stage').style.display = 'flex';
+    loadPptx(deck);
+  }
+}
+
+function closePreview() {
+  currentPreview = null;
+  $('preview').classList.remove('open');
+  $('nb-container').innerHTML = '';
+}
+
+// ─── PPTX viewer (pptxviewjs) ─────────────────────────────────────────────────
+async function loadPptx(deck) {
+  $('pptx-loading').style.display = 'flex';
+  try {
+    const resp = await fetch(deck.path);
+    if (!resp.ok) throw new Error('not found');
+    const blob = await resp.blob();
+
+    if (!window.PptxViewJS) {
+      await loadScript('https://cdn.jsdelivr.net/npm/pptxviewjs/dist/PptxViewJS.min.js');
+    }
+
+    const canvas = $('pptx-canvas');
+    if (!pptxMounted) {
+      const fi = document.createElement('input');
+      fi.type = 'file'; fi.accept = '.pptx,.ppt'; fi.style.display = 'none';
+      document.body.appendChild(fi);
+      window._pptxInput = fi;
+      window.PptxViewJS.mountSimpleViewer({
+        canvas, fileInput: fi,
+        prevBtn: $('slide-nav-prev'),
+        nextBtn: $('slide-nav-next'),
+      });
+      pptxMounted = true;
+    }
+
+    const file = new File([blob], deck.title + '.pptx', {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    window._pptxInput.files = dt.files;
+    window._pptxInput.dispatchEvent(new Event('change'));
+    $('pptx-loading').style.display = 'none';
+    $('slide-bar').style.width = '5%';
+  } catch (_) {
+    $('pptx-loading').style.display = 'none';
+    $('pptx-loading').textContent = 'Datei nicht gefunden.';
+    $('pptx-loading').style.display = 'flex';
+  }
+}
+
+// ─── Notebook viewer (notebookjs) ─────────────────────────────────────────────
+async function ensureNbReady() {
+  if (nbReady) return;
+  loadStylesheet('https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css');
+  loadStylesheet('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css');
+  await Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/ansi_up@5.2.1/ansi_up.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js'),
+  ]);
+  await Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/notebookjs@0.8.3/notebook.min.js'),
+  ]);
+  const ansi = new AnsiUp();
+  nb.markdown = text => marked.parse(text);
+  nb.ansi = text => ansi.ansi_to_html(text);
+  nb.highlighter = (text, pre, code, lang) => {
+    const l = lang && hljs.getLanguage(lang) ? lang : 'python';
+    try { return hljs.highlight(text, { language: l, ignoreIllegals: true }).value; }
+    catch (_) { return hljs.highlightAuto(text).value; }
+  };
+  nb.sanitizer = x => x;
+  nbReady = true;
+}
+
+async function loadNotebook(deck) {
+  $('nb-container').innerHTML = '<div style="padding:20px;opacity:.4">Lade Notebook…</div>';
+  try {
+    await ensureNbReady();
+    const resp = await fetch(deck.path);
+    if (!resp.ok) throw new Error('Datei nicht gefunden: ' + deck.path);
+    const data = await resp.json();
+    const notebook = nb.parse(data);
+    $('nb-container').innerHTML = '';
+    $('nb-container').appendChild(notebook.render());
+    if (window.renderMathInElement) {
+      renderMathInElement($('nb-container'), {
+        delimiters: [
+          { left:'$$', right:'$$', display:true },
+          { left:'$', right:'$', display:false },
+          { left:'\\(', right:'\\)', display:false },
+          { left:'\\[', right:'\\]', display:true },
+        ],
+        throwOnError: false,
+      });
+    }
+  } catch (err) {
+    $('nb-container').innerHTML =
+      `<div style="padding:20px;opacity:.5;font-size:13px">Fehler: ${err.message}</div>`;
+  }
+}
+
+// ─── Share ────────────────────────────────────────────────────────────────────
+function openShare(deck) {
+  $('share-desc').textContent =
+    `Jeder mit diesem Link kann „${deck.title}" direkt im Browser ansehen.`;
+  $('share-link-input').value = location.origin + '/#' + encodeURIComponent(deck.path);
+  $('share-modal').classList.add('open');
+}
+function closeShare() { $('share-modal').classList.remove('open'); }
+function copyShare() {
+  navigator.clipboard?.writeText($('share-link-input').value).catch(() => {});
+  $('btn-share-copy').textContent = 'Kopiert ✓';
+  setTimeout(() => { $('btn-share-copy').textContent = 'Kopieren'; }, 2000);
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+$('search').addEventListener('input', e => {
+  state.search = e.target.value;
+  state.activeCourse = null;
+  renderSidebar(); renderList();
+});
+$('nav-all').addEventListener('click', () => {
+  state.activeCourse = null; state.search = '';
+  $('search').value = '';
+  renderSidebar(); renderList();
+});
+$('course-list').addEventListener('click', e => {
+  const c = e.target.closest('[data-course]');
+  if (!c) return;
+  state.activeCourse = c.dataset.course; state.search = '';
+  $('search').value = '';
+  renderSidebar(); renderList();
+});
+$('reset-btn').addEventListener('click', () => {
+  state.activeCourse = null; state.search = '';
+  $('search').value = '';
+  renderSidebar(); renderList();
+});
+$('list').addEventListener('click', e => {
+  const shareEl = e.target.closest('[data-share]');
+  if (shareEl) {
+    e.stopPropagation();
+    openShare(ALL_DECKS.find(d => d.id === decodeURIComponent(shareEl.dataset.share)));
+    return;
+  }
+  const row = e.target.closest('.row[data-id]');
+  if (row) openPreview(ALL_DECKS.find(d => d.id === decodeURIComponent(row.dataset.id)));
+});
+$('btn-preview-close').addEventListener('click', closePreview);
+$('btn-preview-share').addEventListener('click', () => currentPreview && openShare(currentPreview));
+$('btn-share-close').addEventListener('click', closeShare);
+$('btn-share-copy').addEventListener('click', copyShare);
+$('share-modal').addEventListener('click', closeShare);
+window.addEventListener('keydown', e => {
+  if ($('share-modal').classList.contains('open')) { if (e.key==='Escape') closeShare(); return; }
+  if ($('preview').classList.contains('open') && e.key==='Escape') closePreview();
+  if ($('preview').classList.contains('open') && !currentPreview?.isNotebook) {
+    if (e.key==='ArrowRight') $('slide-nav-next').click();
+    if (e.key==='ArrowLeft') $('slide-nav-prev').click();
+  }
+});
+
+// ─── Init: fetch data.json and build ─────────────────────────────────────────
+async function init() {
+  // Show loading state
+  $('breadcrumb').textContent = 'Lade…';
+  try {
+    const resp = await fetch('data.json');
+    if (!resp.ok) throw new Error('data.json nicht gefunden');
+    const paths = await resp.json(); // expects: ["slides/ML/Titel.pptx", ...]
+    ALL_DECKS = paths.map(parsePath).filter(Boolean);
+    // Derive sorted unique course names preserving first-seen order
+    const seen = new Set();
+    ALL_DECKS.forEach(d => { if (!seen.has(d.course)) seen.add(d.course); });
+    COURSES = [...seen];
+    // First course expanded by default
+    if (COURSES.length) state.activeCourse = null;
+  } catch (err) {
+    $('breadcrumb').textContent = 'Fehler';
+    $('empty').style.display = 'flex';
+    $('empty').querySelector('span').textContent = err.message;
+    return;
+  }
+  renderSidebar();
+  renderList();
+}
+
+init();
+</script>
+</body>
+</html>
