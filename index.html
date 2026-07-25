@@ -58,7 +58,7 @@ body{background:#0b0b0a;color:#f4f3ef;font-family:"Inter",system-ui,sans-serif;f
 
 /* PPTX */
 #pptx-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-#pptx-canvas{max-width:calc(100% - 120px);max-height:100%;display:block;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.5)}
+#pptx-canvas{display:block;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.5)}
 .slide-nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:none;border:none;color:#f4f3ef;font-size:24px;font-weight:700;cursor:pointer;padding:12px 20px;opacity:.45;transition:opacity .15s;user-select:none}
 .slide-nav-btn:hover{opacity:1}
 #slide-nav-prev{left:20px}
@@ -319,6 +319,17 @@ async function loadPptx(deck) {
     }
 
     const canvas = $('pptx-canvas');
+    const stage = $('pptx-stage');
+    const sw = stage.clientWidth - 120;
+    const sh = stage.clientHeight - 40;
+    const aspect = 16 / 9;
+    const cw = Math.min(sw, sh * aspect);
+    const ch = cw / aspect;
+    canvas.style.width  = cw + 'px';
+    canvas.style.height = ch + 'px';
+    canvas.width  = Math.round(cw  * devicePixelRatio);
+    canvas.height = Math.round(ch * devicePixelRatio);
+
     if (!pptxMounted) {
       const fi = document.createElement('input');
       fi.type = 'file'; fi.accept = '.pptx,.ppt'; fi.style.display = 'none';
