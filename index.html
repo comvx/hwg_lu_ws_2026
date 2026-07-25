@@ -310,9 +310,11 @@ async function loadPptx(deck) {
     const blob = await resp.blob();
 
     if (!window.PptxViewJS) {
-      if (!window.Chart) {
-        await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js');
-      }
+      // pptxviewjs requires JSZip and Chart.js as globals before it loads
+      await Promise.all([
+        window.JSZip  ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'),
+        window.Chart  ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js'),
+      ]);
       await loadScript('https://cdn.jsdelivr.net/npm/pptxviewjs/dist/PptxViewJS.min.js');
     }
 
