@@ -1,0 +1,19 @@
+{
+  "name": "hwg-lu-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && npx serve -l 4321"
+  },
+  "dependencies": {
+    "ansi_up": "5.2.1",
+    "chart.js": "4.4.9",
+    "highlight.js": "11.11.1",
+    "jszip": "3.10.1",
+    "katex": "0.16.22",
+    "marked": "15.0.12",
+    "notebookjs": "0.8.3",
+    "pptxviewjs": "1.1.9"
+  }
+}

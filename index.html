@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Archiv</title>
+<!-- KaTeX CSS (needed by katex in bundle + notebookjs) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<!-- hljs dark theme -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+<!-- All viewer deps bundled locally — no CDN ordering issues -->
+<script src="bundle.js"></script>
+<!-- notebookjs stays on CDN (depends on jsdom which can't bundle for browser) -->
+<script src="https://cdn.jsdelivr.net/npm/notebookjs@0.8.3/notebook.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden}
@@ -309,15 +317,6 @@ async function loadPptx(deck) {
     if (!resp.ok) throw new Error('not found');
     const blob = await resp.blob();
 
-    if (!window.PptxViewJS) {
-      // pptxviewjs requires JSZip and Chart.js as globals before it loads
-      await Promise.all([
-        window.JSZip  ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'),
-        window.Chart  ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js'),
-      ]);
-      await loadScript('https://cdn.jsdelivr.net/npm/pptxviewjs/dist/PptxViewJS.min.js');
-    }
-
     const canvas = $('pptx-canvas');
     const stage = $('pptx-stage');
     const sw = stage.clientWidth - 120;
@@ -360,20 +359,8 @@ async function loadPptx(deck) {
 }
 
 // ─── Notebook viewer (notebookjs) ─────────────────────────────────────────────
-async function ensureNbReady() {
+function setupNb() {
   if (nbReady) return;
-  loadStylesheet('https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css');
-  loadStylesheet('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css');
-  await Promise.all([
-    loadScript('https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/ansi_up@5.2.1/ansi_up.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js'),
-  ]);
-  await Promise.all([
-    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/notebookjs@0.8.3/notebook.min.js'),
-  ]);
   const ansi = new AnsiUp();
   nb.markdown = text => marked.parse(text);
   nb.ansi = text => ansi.ansi_to_html(text);
@@ -389,7 +376,7 @@ async function ensureNbReady() {
 async function loadNotebook(deck) {
   $('nb-container').innerHTML = '<div style="padding:20px;opacity:.4">Lade Notebook…</div>';
   try {
-    await ensureNbReady();
+    setupNb();
     const resp = await fetch(deck.path);
     if (!resp.ok) throw new Error('Datei nicht gefunden: ' + deck.path);
     const data = await resp.json();
